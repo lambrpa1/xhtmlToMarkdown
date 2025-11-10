@@ -1,32 +1,15 @@
-/*
-AWS Lambda (Node.js 20): Confluence XHTML (storage format) → Markdown
-- Uses jsdom to parse Confluence XHTML and Turndown for HTML→MD.
-- Handles images: <ac:image> with <ri:attachment ri:filename> or <ri:url ri:value>.
-- Unwraps/ignores other namespaced tags (ac:, ri:, atlassian:), preserving inner text.
-- Works behind API Gateway (proxy or non-proxy).
-
-Request JSON body (recommended):
-{
-  "xhtml": "<h1>Title</h1>...",
-  "base_url": "https://confluence.example.com",           // optional, for absolute links
-  "page_id": "123456",                                    // optional, for attachment URLs
-  "attachment_url_template": "/download/attachments/{page_id}/{filename}", // optional
-  "prefer_absolute_urls": true                              // optional
-}
-Response: { "markdown": "# Title\n..." }
-*/
-
 const TurndownService = require('turndown');
 const { JSDOM } = require('jsdom');
 
-const DEFAULT_ATTACHMENT_TEMPLATE = '/download/attachments/{page_id}/{filename}';
+const DEFAULT_ATTACHMENT_TEMPLATE = '/img/{filename}';
 
 function s(v) { return (v || '').toString().trim(); }
 
 function buildAttachmentUrl({ filename, baseUrl, pageId, tpl, absolute }) {
+  const encodedFilename = encodeURIComponent(s(filename));
   const rel = (tpl || DEFAULT_ATTACHMENT_TEMPLATE)
     .replace('{page_id}', s(pageId))
-    .replace('{filename}', filename);
+    .replace('{filename}', encodedFilename);
   return absolute && baseUrl ? `${baseUrl.replace(/\/$/, '')}${rel}` : rel;
 }
 
@@ -80,7 +63,7 @@ function normalizeConfluenceXhtmlToHtml(xhtml, opts = {}) {
         return inner;
       }
 
-      const allowed = new Set(['p','br','strong','b','em','i','code','pre','a','ul','ol','li','h1','h2','h3','h4','h5','h6','img']);
+      const allowed = new Set(['p','br','strong','b','em','i','code','pre','a','ul','ol','li','h1','h2','h3','h4','h5','h6','img','table','tr','th','td']);
       if (allowed.has(name)) {
         let attrs = '';
         if (name === 'a') {
@@ -116,7 +99,38 @@ function normalizeConfluenceXhtmlToHtml(xhtml, opts = {}) {
 function xhtmlToMarkdown(xhtml, opts = {}) {
   const normalized = normalizeConfluenceXhtmlToHtml(xhtml, opts);
   const turndown = new TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced' });
+
+  // Taulukkotuki
+  turndown.addRule('table', {
+    filter: function (node) {
+      return node.nodeName === 'TABLE';
+    },
+    replacement: function (content, node) {
+      const rows = Array.from(node.querySelectorAll('tr')).map(tr => {
+        const cells = Array.from(tr.children).map(td => {
+          return (td.textContent || '').trim().replace(/\|/g, '\\|');
+        });
+        return cells;
+      });
+
+      if (!rows.length) return '';
+      const header = rows[0];
+      const aligns = header.map(() => '---');
+      const body = rows.slice(1);
+
+      const tableMarkdown = [
+        `| ${header.join(' | ')} |`,
+        `| ${aligns.join(' | ')} |`,
+        ...body.map(r => `| ${r.join(' | ')} |`)
+      ].join('\n');
+
+      return `\n${tableMarkdown}\n\n`;
+    }
+  });
+
+  // Rivinvaihdot <br>
   turndown.addRule('lineBreak', { filter: ['br'], replacement: () => '  \n' });
+
   return turndown.turndown(normalized).replace(/\n{3,}/g, '\n\n').trim() + '\n';
 }
 
