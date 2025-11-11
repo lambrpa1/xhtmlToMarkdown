@@ -1,9 +1,14 @@
 # XHTML to markdown converter
 
-## Installing node modules
+## Installing node modules for xhtml to markdown converter
 
-npm i turndown jsdom express body-parser
+npm i turndown jsdom
 
-## Building package
+## Installing test and testServer node modules
+
+npm i express body-parser
+
+## Building package (in lambda directory)
 
 zip -r function.zip index.js node_modules package.json
+

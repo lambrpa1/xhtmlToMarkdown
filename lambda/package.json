@@ -1,0 +1,10 @@
+{
+  "name": "confluence-xhtml-to-md-lambda",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "commonjs",
+  "dependencies": {
+    "jsdom": "^24.1.3",
+    "turndown": "^7.2.2"
+  }
+}

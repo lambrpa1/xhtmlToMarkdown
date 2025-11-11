@@ -1,6 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const { handler } = require('./index');
+const { handler } = require('../lambda/index');
 
 const app = express();
 app.use(bodyParser.text({ type: '*/*' })); // sallitaan myös raw XHTML

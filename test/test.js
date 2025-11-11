@@ -1,4 +1,4 @@
-const { handler } = require('./index'); // tai polku canvasin tiedostoon
+const { handler } = require('../lambda/index'); 
 const fs = require('fs');
 
 (async () => {
