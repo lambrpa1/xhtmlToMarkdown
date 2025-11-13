@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
+    archive = {
+      source  = "hashicorp/archive"
+      version = "~> 2.0"
+    }
   }
 }
 
@@ -13,25 +17,46 @@ provider "aws" {
   region = "eu-north-1"
 }
 
-# IAM role
+###############################################################################
+# ZIP PACKAGE
+###############################################################################
+
+# Luo zip Terraformilla automaattisesti aina kun koodi muuttuu
+data "archive_file" "xhtml_zip" {
+  type        = "zip"
+  source_dir  = "${path.module}/lambda"
+  output_path = "${path.module}/xhtmlToMd.zip"
+}
+
+###############################################################################
+# IAM ROLE for Lambda
+###############################################################################
+
 resource "aws_iam_role" "lambda_role" {
   name = "xhtml-to-md-role"
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Action = "sts:AssumeRole"
       Effect = "Allow"
-      Principal = { Service = "lambda.amazonaws.com" }
+      Principal = {
+        Service = "lambda.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
     }]
   })
 }
 
+# Lambda Basic Execution Role (CloudWatch Logs)
 resource "aws_iam_role_policy_attachment" "basic" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-# Lambda
+###############################################################################
+# LAMBDA FUNCTION
+###############################################################################
+
 resource "aws_lambda_function" "xhtml_to_md" {
   function_name    = "xhtmlToMarkdown"
   role             = aws_iam_role.lambda_role.arn
@@ -39,11 +64,15 @@ resource "aws_lambda_function" "xhtml_to_md" {
   handler          = "index.handler"
   timeout          = 15
   memory_size      = 256
-  filename         = "${path.module}/xhtmlToMd.zip"
-  source_code_hash = filebase64sha256("${path.module}/xhtmlToMd.zip")
+
+  filename         = data.archive_file.xhtml_zip.output_path
+  source_code_hash = data.archive_file.xhtml_zip.output_base64sha256
 }
 
-# API Gateway
+###############################################################################
+# API GATEWAY HTTP API
+###############################################################################
+
 resource "aws_apigatewayv2_api" "api" {
   name          = "xhtml-to-md-api"
   protocol_type = "HTTP"
@@ -68,6 +97,10 @@ resource "aws_apigatewayv2_stage" "stage" {
   auto_deploy = true
 }
 
+###############################################################################
+# LAMBDA PERMISSION FOR API GATEWAY
+###############################################################################
+
 resource "aws_lambda_permission" "invoke" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
@@ -75,6 +108,10 @@ resource "aws_lambda_permission" "invoke" {
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
 }
+
+###############################################################################
+# OUTPUT
+###############################################################################
 
 output "api_url" {
   description = "Invoke URL"
