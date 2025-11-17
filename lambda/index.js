@@ -13,9 +13,6 @@ function buildAttachmentUrl({ filename, baseUrl, pageId, tpl, absolute }) {
   return absolute && baseUrl ? `${baseUrl.replace(/\/$/, '')}${rel}` : rel;
 }
 
-
-
-
 function normalizeConfluenceXhtmlToHtml(xhtml, opts = {}) {
   const { base_url, page_id, attachment_url_template, prefer_absolute_urls } = opts;
   const dom = new JSDOM(`<root>${xhtml}</root>`);

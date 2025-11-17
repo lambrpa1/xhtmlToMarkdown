@@ -30,6 +30,10 @@ Local server starts at http://localhost:3000/ and endpoint available http://loca
 ```
 cd test
 node testServer.js
+
+curl -s http://localhost:3000/convert \                       
+  -H "Content-Type: application/json" \
+  -d '{"xhtml":"<h1>Hei</h1><p>Testi</p>"}' | jq .
 ```
 
 
