@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       AWS_REGION: eu-north-1
-      AWS_ROLE: arn:aws:iam::426720422766:role/gh-xhtmlToMarkdown
+      AWS_ROLE: arn:aws:iam::161216333415:role/gh-xhtmlToMarkdown
 
     steps:
       - name: Checkout repo
