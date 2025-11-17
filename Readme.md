@@ -1,18 +1,45 @@
 # XHTML to markdown converter
 
-## Installing node modules for xhtml to markdown converter
+## Local run
 
+### Installing node modules for xhtml to markdown converter
+
+```
+cd lambda
 npm i turndown jsdom
+```
 
-## Installing test and testServer node modules
+### Installing test and testServer node modules
 
+```
+cd test
 npm i express body-parser
+```
 
-## Building package (in lambda directory)
+### Testing 
 
-zip -r function.zip index.js node_modules package.json
+```
+cd test
+node test.js 
+```
+
+### Running local server
+
+Local server starts at http://localhost:3000/ and endpoint available http://localhost:3000/convert
+
+```
+cd test
+node testServer.js
+```
+
 
 ## AWS resources
+
+“Manually created resources” refers to resources that are configured directly in the AWS Console.
+
+“Permanent resources” are bootstrap resources that are created once using Terraform definitions.
+
+“From Git” means resources that are created or updated automatically by a GitHub Action on each deployment.
 
 |Resource type|Resource|Name|Other|
 |-----|-----|-----|-----|
