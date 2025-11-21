@@ -70,31 +70,60 @@ resource "aws_lambda_function" "xhtml_to_md" {
 }
 
 ###############################################################################
-# API GATEWAY HTTP API
+# API GATEWAY REST API
 ###############################################################################
 
-resource "aws_apigatewayv2_api" "api" {
-  name          = "xhtml-to-md-api"
-  protocol_type = "HTTP"
+data "aws_region" "current" {}
+
+resource "aws_api_gateway_rest_api" "api" {
+  name        = "xhtml-to-md-api"
+  description = "REST API for XHTML to Markdown converter Lambda"
 }
 
-resource "aws_apigatewayv2_integration" "integration" {
-  api_id                 = aws_apigatewayv2_api.api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.xhtml_to_md.invoke_arn
-  payload_format_version = "2.0"
+# POST /convert -metodi
+resource "aws_api_gateway_method" "post_root" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_rest_api.api.root_resource_id
+  http_method   = "POST"
+  authorization = "NONE"
 }
 
-resource "aws_apigatewayv2_route" "route" {
-  api_id    = aws_apigatewayv2_api.api.id
-  route_key = "POST /convert"
-  target    = "integrations/${aws_apigatewayv2_integration.integration.id}"
+# Lambda-integraatio REST API:lle
+resource "aws_api_gateway_integration" "lambda" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_rest_api.api.root_resource_id
+  http_method = aws_api_gateway_method.post_root.http_method
+
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.xhtml_to_md.arn}/invocations"
 }
 
-resource "aws_apigatewayv2_stage" "stage" {
-  api_id      = aws_apigatewayv2_api.api.id
-  name        = "$default"
-  auto_deploy = true
+# Deployment (riippuu metodista ja integraatiosta)
+resource "aws_api_gateway_deployment" "deployment" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+
+  depends_on = [
+    aws_api_gateway_method.post_root,
+    aws_api_gateway_integration.lambda,
+  ]
+
+  triggers = {
+    redeploy = sha1(jsonencode([
+      aws_api_gateway_method.post_root.id,
+      aws_api_gateway_integration.lambda.id,
+    ]))
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_api_gateway_stage" "stage" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  deployment_id = aws_api_gateway_deployment.deployment.id
+  stage_name    = "convert"
 }
 
 ###############################################################################
@@ -102,11 +131,11 @@ resource "aws_apigatewayv2_stage" "stage" {
 ###############################################################################
 
 resource "aws_lambda_permission" "invoke" {
-  statement_id  = "AllowAPIGatewayInvoke"
+  statement_id  = "AllowAPIGatewayInvokeRest"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.xhtml_to_md.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.api.execution_arn}/*/*"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
 ###############################################################################
@@ -115,5 +144,5 @@ resource "aws_lambda_permission" "invoke" {
 
 output "api_url" {
   description = "Invoke URL"
-  value       = aws_apigatewayv2_api.api.api_endpoint
+  value       = "https://${aws_api_gateway_rest_api.api.id}.execute-api.${data.aws_region.current.name}.amazonaws.com/${aws_api_gateway_stage.stage.stage_name}"
 }
