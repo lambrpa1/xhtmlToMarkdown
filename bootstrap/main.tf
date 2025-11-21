@@ -17,7 +17,7 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 
 ###############################################################################
-# S3 BUCKET TERRAFORM-STATEA VARTEN
+# S3 BUCKET FOR TERRAFORM-STATE
 ###############################################################################
 
 resource "aws_s3_bucket" "tf_state" {
@@ -48,7 +48,7 @@ resource "aws_s3_bucket_versioning" "tf_state_versioning" {
 }
 
 ###############################################################################
-# DYNAMODB TABLE TERRAFORM LOCKILLE
+# DYNAMODB TABLE FOR TERRAFORM LOCK
 ###############################################################################
 
 resource "aws_dynamodb_table" "tf_locks" {
@@ -68,7 +68,7 @@ resource "aws_dynamodb_table" "tf_locks" {
 }
 
 ###############################################################################
-# GITHUB OIDC PROVIDER (DATA) – OLETUS: LUOTU JO KONSOLISSA
+# GITHUB OIDC PROVIDER (DATA) – THIS MUST ALREADY EXIST IN AWS
 ###############################################################################
 
 data "aws_iam_openid_connect_provider" "github" {
@@ -76,7 +76,7 @@ data "aws_iam_openid_connect_provider" "github" {
 }
 
 ###############################################################################
-# IAM ROLE GH-AJOLLE: gh-xhtmlToMarkdown
+# IAM ROLE FOR GH: gh-xhtmlToMarkdown
 ###############################################################################
 
 # Trust policy GitHub Actionsille (repo: lambrpa1/xhtmlToMarkdown)
@@ -150,12 +150,12 @@ data "aws_iam_policy_document" "gh_permissions" {
     ]
   }
 
-  # Lambda & API Gateway & Logs (rajattu suht maltillisesti)
+  # Lambda & API Gateway & Logs 
   statement {
     sid    = "LambdaAndApiGateway"
     effect = "Allow"
     actions = [
-      # Lambda – ihan kaikki
+      # Lambda – all privileges
       "lambda:*",
   
       # API Gateway v2 (HTTP/WebSocket APIs)
@@ -174,7 +174,7 @@ data "aws_iam_policy_document" "gh_permissions" {
     resources = ["*"]
   }
 
-  # IAM: luo/päivitä exec-rooli xhtml-to-md-role
+  # IAM for Lambda
   statement {
     sid    = "ManageLambdaExecRole"
     effect = "Allow"

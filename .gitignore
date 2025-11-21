@@ -2,6 +2,3 @@ lambda/node_modules
 test/node_modules
 function.zip
 bootstrap/.terraform
-bootstrap/.terraform.lock.hcl
-bootstrap/terraform.tfstate
-bootstrap/terraform.tfstate.backup

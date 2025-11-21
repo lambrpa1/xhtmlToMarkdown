@@ -60,7 +60,7 @@ resource "aws_iam_role_policy_attachment" "basic" {
 resource "aws_lambda_function" "xhtml_to_md" {
   function_name    = "xhtmlToMarkdown"
   role             = aws_iam_role.lambda_role.arn
-  runtime          = "nodejs20.x"
+  runtime          = "nodejs22.x"
   handler          = "index.handler"
   timeout          = 15
   memory_size      = 256
